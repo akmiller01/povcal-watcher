@@ -225,6 +225,8 @@ def record_data(agg_data, smy_data):
     os.makedirs(new_dir)
     agg_data.to_pickle(os.path.join(new_dir, "agg.pkl"))
     smy_data.to_pickle(os.path.join(new_dir, "smy.pkl"))
+    agg_data.to_csv(os.path.join(new_dir, "agg.csv"), index=False)
+    smy_data.to_csv(os.path.join(new_dir, "smy.csv"), index=False)
 
 
 def data_is_the_same(new_agg, new_smy):
