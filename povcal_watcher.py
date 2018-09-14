@@ -3,8 +3,9 @@ import re
 import pandas as pd
 import os
 import datetime
-import pdb
-
+import json
+import smtplib
+from email.mime.text import MIMEText
 
 def fetch_data():
     """Fetch data from PovCalNet at $1.90 poverty line."""
@@ -225,7 +226,8 @@ def record_data(agg_data, smy_data):
     smy_data.to_pickle(os.path.join(new_dir, "smy.pkl"))
 
 
-def data_has_not_changed(new_agg, new_smy):
+def data_is_the_same(new_agg, new_smy):
+    """Check whether data has not changed."""
     dir_path = os.path.dirname(os.path.realpath(__file__))
     all_subdirs = [d for d in os.listdir(dir_path) if os.path.isdir(d)]
     latest_subdir = max(all_subdirs, key=os.path.getmtime)
@@ -234,13 +236,33 @@ def data_has_not_changed(new_agg, new_smy):
     return new_agg.equals(old_agg) and new_smy.equals(old_smy)
 
 
+def send_email(subject, message):
+    """Send a notice"""
+    conf = json.load(open("mail_conf.json"))
+    fromEmail = conf["email1"]
+    fromEmailPassword = conf["email1password"]
+    toEmail = conf["email2"]
+
+    msg = MIMEText(message, 'plain')
+    msg['Subject'] = subject
+    msg['From'] = fromEmail
+    msg['To'] = toEmail
+
+    smtp = smtplib.SMTP('smtp.gmail.com', 587)
+    smtp.starttls()
+    smtp.login(fromEmail, fromEmailPassword)
+    smtp.sendmail(fromEmail, toEmail, msg.as_string())
+    smtp.quit()
+
+
 def main():
     agg_data, smy_data = fetch_data()
-    if data_has_not_changed(agg_data, smy_data):
-        print("Data has not changed.")
-    else:
+    if not data_is_the_same(agg_data, smy_data):
         record_data(agg_data, smy_data)
-        print("Data has changed.")
+        send_email(
+            "PovCalNet has been updated",
+            "The PovCal Watcher has detected a change in PovCalNet. Go check it out!"
+        )
 
 
 if __name__ == '__main__':
