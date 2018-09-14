@@ -7,6 +7,7 @@ import json
 import smtplib
 from email.mime.text import MIMEText
 
+
 def fetch_data():
     """Fetch data from PovCalNet at $1.90 poverty line."""
     url = "http://iresearch.worldbank.org/PovcalNet/PovcalNetAPI.ashx"
