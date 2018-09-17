@@ -1,5 +1,5 @@
 {
   "email1": "from@gmail.com",
   "email1password": "Thepassword",
-  "email2": "to@gmail.com"
+  "recipients": ["to@gmail.com"]
 }

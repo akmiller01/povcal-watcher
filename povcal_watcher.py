@@ -248,22 +248,25 @@ def send_email(subject, message):
     conf = json.load(open("mail_conf.json"))
     fromEmail = conf["email1"]
     fromEmailPassword = conf["email1password"]
-    toEmail = conf["email2"]
+    recipients = conf["recipients"]
 
     msg = MIMEText(message, 'plain')
     msg['Subject'] = subject
     msg['From'] = fromEmail
-    msg['To'] = toEmail
+    msg['To'] = ", ".join(recipients)
 
     smtp = smtplib.SMTP('smtp.gmail.com', 587)
     smtp.starttls()
     smtp.login(fromEmail, fromEmailPassword)
-    smtp.sendmail(fromEmail, toEmail, msg.as_string())
+    smtp.sendmail(fromEmail, recipients, msg.as_string())
     smtp.quit()
 
 
 def main():
-    agg_data, smy_data = fetch_data()
+    try:
+        agg_data, smy_data = fetch_data()
+    except Exception as e:
+        send_email("PovCalNet data fetch has failed", "Error message: "+str(e))
     if not data_is_the_same(agg_data, smy_data):
         record_data(agg_data, smy_data)
         send_email(
