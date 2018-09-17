@@ -264,10 +264,15 @@ def send_email(subject, message):
 
 def main():
     try:
+        print("Fetching data...")
         agg_data, smy_data = fetch_data()
     except Exception as e:
+        print("Encountered an error fetching data...")
         send_email("PovCalNet data fetch has failed", "Error message: "+str(e))
-    if not data_is_the_same(agg_data, smy_data):
+    if data_is_the_same(agg_data, smy_data):
+        print("Data is the same!")
+    else:
+        print("Data is not the same!")
         record_data(agg_data, smy_data)
         send_email(
             "PovCalNet has been updated",
