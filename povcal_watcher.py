@@ -218,24 +218,10 @@ def fetch_data():
     return agg_data, smy_data
 
 
-def load_old_data():
-    """Load the last dir's data"""
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    all_subdirs = [d for d in os.listdir(dir_path) if os.path.isdir(d) and d != ".git"]
-    if len(all_subdirs) == 0:
-        agg_data, smy_data = fetch_data()
-        record_data(agg_data, smy_data)
-        return True
-    latest_subdir = max(all_subdirs, key=os.path.getmtime)
-    old_agg = pd.read_pickle(os.path.join(dir_path, latest_subdir, "agg.pkl"))
-    old_smy = pd.read_pickle(os.path.join(dir_path, latest_subdir, "smy.pkl"))
-    return old_agg, old_smy
-
-
 def record_data(agg_data, smy_data):
     """If data is new, record it to hard disk."""
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    new_dir = os.path.join(dir_path, datetime.datetime.now().strftime('%Y-%m-%d'))
+    new_dir = os.path.join(dir_path, datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
     os.makedirs(new_dir)
     agg_data.to_pickle(os.path.join(new_dir, "agg.pkl"))
     smy_data.to_pickle(os.path.join(new_dir, "smy.pkl"))
@@ -243,9 +229,18 @@ def record_data(agg_data, smy_data):
     smy_data.to_csv(os.path.join(new_dir, "smy.csv"), index=False)
 
 
-def data_is_the_same(new_agg, new_smy, old_agg, old_smy):
+def data_is_the_same(new_agg, new_smy):
     """Check whether data has not changed."""
-    return new_agg.equals(old_agg) and new_smy.equals(old_smy)
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    all_subdirs = [d for d in os.listdir(dir_path) if os.path.isdir(d) and d != ".git"]
+    if len(all_subdirs) == 0:
+        agg_data, smy_data = fetch_data()
+        record_data(agg_data, smy_data)
+        return True, agg_data, smy_data
+    latest_subdir = max(all_subdirs, key=os.path.getmtime)
+    old_agg = pd.read_pickle(os.path.join(dir_path, latest_subdir, "agg.pkl"))
+    old_smy = pd.read_pickle(os.path.join(dir_path, latest_subdir, "smy.pkl"))
+    return (new_agg.equals(old_agg) and new_smy.equals(old_smy)), old_agg, old_smy
 
 
 def send_email(subject, message):
@@ -280,11 +275,11 @@ def main():
     try:
         print("Fetching data...")
         agg_data, smy_data = fetch_data()
-        old_agg, old_smy = load_old_data()
     except Exception as e:
         print("Encountered an error fetching data...")
         send_email("PovCalNet data fetch has failed", "<p>Error message: "+str(e)+"</p>")
-    if data_is_the_same(agg_data, smy_data, old_agg, old_smy):
+    its_the_same, old_agg, old_smy = data_is_the_same(agg_data, smy_data)
+    if its_the_same:
         print("Data is the same!")
     else:
         print("Data is not the same!")
