@@ -1,7 +1,6 @@
 import requests
-import urllib
-import re
 import pandas as pd
+import io
 import os
 import datetime
 import json
@@ -10,44 +9,33 @@ from email.mime.text import MIMEText
 
 def fetch_data():
     """Fetch data from PovCalNet at $1.90 poverty line."""
-    url = "http://iresearch.worldbank.org/PovcalNet/PovcalNetAPI.ashx"
-    params = {
+    url = "http://iresearch.worldbank.org/PovcalNet/PovcalNetAPI.ashx?"
+    smy_params = {
         "Countries": "all",
         "GroupedBy": "WB",
         "PovertyLine": "1.9",
-        "YearSelected": "2013",
-        "format": "js"
+        "RefYears": "all",
+        "Display": "C",
+        "format": "csv"
+    }
+    agg_params = {
+        "Countries": "all",
+        "GroupedBy": "WB",
+        "PovertyLine": "1.9",
+        "RefYears": "all",
+        "Display": "Regional",
+        "format": "csv"
     }
 
-    init_c_item_lines = urllib.request.urlopen("http://iresearch.worldbank.org/PovcalNet/js/initCItem2014.js")
-    c_item_counter = 0
-    for init_c_item in init_c_item_lines:
-        if "cItem" in str(init_c_item):
-            c_item = str(init_c_item)[16:21]
-            param_name = "C"+str(c_item_counter)
-            params[param_name] = c_item
-            c_item_counter += 1
+    smy_url = url + "&".join(["{}={}".format(item[0], item[1]) for item in smy_params.items()])
+    agg_url = url + "&".join(["{}={}".format(item[0], item[1]) for item in agg_params.items()])
 
-    response = requests.post(url=url, params=params)
+    s_response = requests.get(url=smy_url).content
+    a_response = requests.get(url=agg_url).content
 
-    raw_content = str(response.content)
+    smy_data = pd.read_csv(io.StringIO(s_response.decode('utf-8')))
+    agg_data = pd.read_csv(io.StringIO(a_response.decode('utf-8')))
 
-    agg = re.findall('aggrItem\((.*?)\)', raw_content)
-    smy = re.findall('smyItem\((.*?)\)', raw_content)
-
-    agg_format = "[{}]".format(",".join(["[{}]".format(row) for row in agg])).replace("\\", "")
-    smy_format = "[{}]".format(",".join(["[{}]".format(row) for row in smy])).replace("\\", "")
-
-    agg_data = pd.read_json(agg_format)
-    agg_data.columns = ["RequestYear", "RegionTitle", "RegionCID", "PovertyLine", "Mean", "H", "PG", "P2", "Populations"]
-    smy_data = pd.read_json(smy_format)
-    smy_data.columns = ["isConsolidated", "displayMode", "useMicroData", "CountryCode", "CountryName", "RegionCID", "CoverageType", "RequestYear", "DataType", "PPP", "PovertyLine", "Mean", "H", "PG", "P2", "watts", "gini", "median", "mld", "pol", "rmed", "rmhalf", "ris", "IA", "Populations", "DataYear", "SvyInfoID", "PPPStatus", "Deciles", "Unknown"]
-
-    smy_data["Deciles"] = smy_data["Deciles"].map(lambda x: [l for l in x] if x is not None else [None]*10)
-    decile_df = pd.DataFrame(smy_data["Deciles"].tolist())
-    decile_df.columns = ["Decile1", "Decile2", "Decile3", "Decile4", "Decile5", "Decile6", "Decile7", "Decile8", "Decile9", "Decile10", ]
-    smy_data = smy_data.drop("Deciles", axis=1)
-    smy_data = smy_data.join(decile_df, how="outer")
     return agg_data, smy_data
 
 
