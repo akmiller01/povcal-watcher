@@ -53,7 +53,7 @@ def record_data(agg_data, smy_data):
 def data_is_the_same(new_agg, new_smy):
     """Check whether data has not changed."""
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    all_subdirs = [d for d in os.listdir(dir_path) if os.path.isdir(d) and d != ".git"]
+    all_subdirs = [d for d in os.listdir(dir_path) if os.path.isdir(d) and d not in [".git", "venv"]]
     if len(all_subdirs) == 0:
         agg_data, smy_data = fetch_data()
         record_data(agg_data, smy_data)
